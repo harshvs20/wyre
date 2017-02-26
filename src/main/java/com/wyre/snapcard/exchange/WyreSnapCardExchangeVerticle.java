@@ -135,7 +135,6 @@ public class WyreSnapCardExchangeVerticle extends io.vertx.rxjava.core.AbstractV
 
     private void addHealthRoutes(Router router) {
         router.get("/rates/health").handler(this::healthRest);
-        router.get("/rates/status").handler(this::handleStatusRequest);
     }
 
     private void handleAverage(RoutingContext routingContext){
@@ -218,10 +217,6 @@ public class WyreSnapCardExchangeVerticle extends io.vertx.rxjava.core.AbstractV
         routingContext.response().
                 putHeader(String.valueOf(CACHE_CONTROL), "no-cache").
                 end("OK");
-    }
-
-    private void handleStatusRequest(RoutingContext routingContext){
-
     }
 
     private MongoClient getMongoClient(JsonObject config){
