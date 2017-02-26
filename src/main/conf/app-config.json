@@ -1,0 +1,15 @@
+{
+  "http_config":{
+    "port":8080
+  },
+  "mongo_config": {
+    "db_name": "wyre",
+    "connection_string": "mongodb://localhost:27017"
+  },
+  "OkCoinUS":{
+    "path":"https://www.okcoin.com/api/v1/ticker.do?symbol=btc_usd"
+  },
+  "BitFinex":{
+    "path":"https://api.bitfinex.com/v1/ticker/btcusd"
+  }
+}

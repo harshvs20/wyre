@@ -1,0 +1,105 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.1",
+    "description": "Service responsible for returning exchange rates Average",
+    "title": "WYRE - SNAPCARD EXCHANGE API",
+    "termsOfService": "www.wyre.com",
+    "contact": {
+      "name": "manager@wyre.com"
+    }
+  },
+  "basePath": "/wyre/v1",
+  "host": "localhost:8080",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/rates/average": {
+      "get": {
+        "tags": [
+          "wyre"
+        ],
+        "summary": "Get call to return average Bid, ask and last for a ticker",
+        "operationId": "getAverage",
+        "description": "returns Averages of Bid ask and last values",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/rates/average/{time}": {
+      "get": {
+        "tags": [
+          "wyre"
+        ],
+        "summary": "Get call to return average Bid, ask and last for a ticker",
+        "operationId": "getAverageForTime",
+        "description": "returns Averages of Bid ask and last values",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "time",
+            "in": "path",
+            "description": "date required in yyyy-MM-dd",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/rates/average/{time}/{exchange}": {
+      "get": {
+        "tags": [
+          "wyre"
+        ],
+        "summary": "Get call to return average Bid, ask and last for a ticker",
+        "operationId": "getAverageForTimeAndExchange",
+        "description": "returns Averages of Bid ask and last values",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "time",
+            "in": "path",
+            "description": "date required in yyyy-MM-dd",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "exchange",
+            "in": "path",
+            "description": "exchange",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}

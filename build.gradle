@@ -1,0 +1,257 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath 'se.transmode.gradle:gradle-docker:1.2'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'application'
+    id "com.github.johnrengelman.shadow" version "1.2.3"
+    id "org.detoeuf.swagger-code-gen" version "1.5.1"
+    id 'distribution'
+    id 'maven'
+    id 'eclipse'
+    id 'idea'
+}
+
+group 'WyreSnapCardExchange'
+version '1.0'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'http://oss.sonatype.org/content/repositories/snapshots/' }
+}
+
+apply plugin: 'org.detoeuf.swagger-code-gen'
+apply plugin: 'docker'
+
+ext {
+    vertxversion = "3.3.3"
+    slf4jVersion = "1.7.21"
+    env = System.getenv()
+    projectPrefix = "SNAPCARD_EXCHANGE"
+
+    webRootDir =  "${buildDir}/resources/webroot"
+    swaggerInputSpec = 'src/main/resources/v1/swagger/snapcardExchange.yaml'
+    swaggerOutput = "${webRootDir}/v1/swagger/docs"
+    swaggerLanguage = 'html'
+}
+
+sourceSets {
+    main {
+        resources{
+            srcDir 'build/resources'
+        }
+
+    }
+}
+
+def finalJarName = "snapcardExchange.jar"
+def jarNamePrefix = rootProject.name
+def jarNameSuffix = "full.jar"
+
+configurations {
+    tarArchives
+    swaggerUi
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'org.slf4j:slf4j-api:1.7.21'
+    }
+}
+
+ext.classifier      = ':jdk8' // ':'
+
+mainClassName = 'io.vertx.core.Launcher'
+
+dependencies {
+    swaggerUi group: 'org.webjars', name: 'swagger-ui', version: '2.1.5'
+}
+
+dependencies {
+    compile "io.vertx:vertx-core:$vertxversion"
+    compile "io.vertx:vertx-service-discovery:$vertxversion"
+    compile "io.vertx:vertx-web:$vertxversion"
+    compile "io.vertx:vertx-auth-common:$vertxversion"
+    compile "io.vertx:vertx-dropwizard-metrics:$vertxversion"
+    compile "io.vertx:vertx-mongo-client:$vertxversion"
+    compile "io.vertx:vertx-auth-jwt:$vertxversion"
+    compile "io.vertx:vertx-auth:$vertxversion"
+    compile "io.vertx:vertx-rx-java:$vertxversion"
+    compile "io.vertx:vertx-service-proxy:$vertxversion"
+    compile "io.vertx:vertx-codegen:$vertxversion"
+    compile "io.vertx:vertx-docgen:$vertxversion"
+    compile "io.vertx:vertx-web-templ-freemarker:$vertxversion"
+
+    testCompile("io.vertx:vertx-unit:${vertxversion}")
+    testCompile "org.mockito:mockito-core:2.0.57-beta"
+
+    compile('me.moocar:logback-gelf:0.3')
+    compile("org.codehaus.groovy:groovy:2.4.6")
+    compile 'org.apache.commons:commons-lang3:3.4'
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+
+}
+
+task yamlToJson << {
+    File yamlFileIn = file(swaggerInputSpec)
+    File jsonFileOut = new File('src/main/resources/v1/swagger/.json')
+    com.fasterxml.jackson.databind.ObjectMapper yamlMapper = new com.fasterxml.jackson.databind.ObjectMapper(new com.fasterxml.jackson.dataformat.yaml.YAMLFactory())
+    com.fasterxml.jackson.databind.ObjectMapper jsonMapper = new com.fasterxml.jackson.databind.ObjectMapper(new com.fasterxml.jackson.core.JsonFactory())
+    jsonMapper.enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
+    com.fasterxml.jackson.databind.node.ObjectNode root = yamlMapper.readTree(yamlFileIn)
+    jsonMapper.writeValue(jsonFileOut, root);
+}
+
+task extractSwaggerUi << {
+    copy {
+        from {
+            configurations.swaggerUi.collect { zipTree(it) }
+        }
+        into "${buildDir}/swagger-ui/"
+    }
+
+    copy {
+        from "${buildDir}/swagger-ui/META-INF/resources/webjars/swagger-ui/2.1.5/"
+        into "${buildDir}/resources/webroot/v1/swagger/ui"
+    }
+
+    copy {
+        from "src/main/resources/v1/swagger"
+        into "${buildDir}/resources/webroot/v1/swagger/ui"
+    }
+
+}
+
+shadowJar {
+    classifier = 'fat'
+    manifest {
+        attributes 'Main-Verticle': 'com.wyre.snapcard.exchange.WyreSnapCardExchangeVerticle'
+        attributes("Implementation-Version": version)
+        attributes("Implementation-Title": rootProject.name)
+    }
+    mergeServiceFiles {
+        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
+    }
+}
+
+task stage {
+    dependsOn shadowJar
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.8'
+}
+
+distributions {
+    File versionFile = new File("version.txt")
+    versionFile.text = version.replace('-SNAPSHOT', '');
+    main {
+
+        contents {
+            from ( "build/libs/${jarNamePrefix}-${version}-${jarNameSuffix}" ) {
+                into 'lib'
+                rename { String fileName ->
+                    fileName = "${finalJarName}"
+                }
+                fileMode = 0755
+            }
+
+            from ( 'run' ) {
+                into 'run'
+                fileMode = 0755
+            }
+
+            from ( "config" ) {
+                into 'config'
+                fileMode = 0755
+            }
+
+            from ( 'resources' ) {
+                into 'resources'
+                fileMode = 0755
+            }
+
+            from { 'version.txt' }
+        }
+    }
+}
+
+distZip {
+    archiveName = "${projectPrefix}-${version}.zip"
+}
+
+distTar {
+    compression = Compression.GZIP
+    archiveName = "${projectPrefix}-${version}.tgz"
+}
+
+artifacts {
+    tarArchives distTar.archivePath
+}
+
+uploadTarArchives {
+    repositories {
+        mavenDeployer {
+            snapshotRepository(url: project.getProperty('repository.snapshots.url')) {
+                authentication(userName: 'user', password: 'pass');
+            }
+            pom.groupId = "wyre"
+            pom.artifactId = projectPrefix
+            pom.version = version
+        }
+    }
+}
+
+docker {
+    baseImage "java:8"
+}
+
+def dockerConfiguration = {
+    applicationName = jar.baseName
+//    registry "${project.getProperty('docker.registry')}/wyre"
+    push false
+
+    def fatJar = "${applicationName}-${version}-fat.jar"
+
+    addFile("${fatJar}", "/app/${applicationName}.jar")
+    addFile("src/main/conf/", "/app/resources/")
+    addFile("src/main/resources/", "/app/resources/")
+    exposePort 8080
+
+    doFirst {
+        copy {
+            from "build/libs"
+            into stageDir
+        }
+        copy {
+            from "src/main/conf"
+            into "${stageDir}/app/resources/"
+        }
+    }
+}
+
+task buildDocker(type: Docker, dependsOn: shadowJar) {
+    configure dockerConfiguration
+}
+
+processResources.dependsOn swagger, yamlToJson, extractSwaggerUi
+
+build.dependsOn shadowJar
+shadowJar.dependsOn test
+
+
+
