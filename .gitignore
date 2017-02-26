@@ -94,6 +94,10 @@ crashlytics-build.properties
 fabric.properties
 ### Gradle template
 .gradle
+gradlew
+gradle
+gradlew.bat
+gradle/wrapper
 build/
 
 # Ignore Gradle GUI config
