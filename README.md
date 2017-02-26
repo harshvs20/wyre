@@ -2,7 +2,7 @@
 
 ### Swagger Documentation and UI
 ```
-http://localhost:8080/labels/v1/swagger/ui/#/
+http://localhost:8080/wyre/v1/swagger/ui/#/
 ```
 
 ### Running the application
